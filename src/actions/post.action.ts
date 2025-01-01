@@ -28,6 +28,9 @@ export async function createPost(content: string, image: string) {
 
 export async function getPosts() {
   try {
+    // First verify database connection
+    await prisma.$connect();
+    
     const posts = await prisma.post.findMany({
       orderBy: {
         createdAt: "desc",
@@ -72,8 +75,22 @@ export async function getPosts() {
 
     return posts;
   } catch (error) {
-    console.log("Error in getPosts", error);
-    throw new Error("Failed to fetch posts");
+    // More detailed error logging
+    if (error instanceof Error) {
+      console.error("Detailed error in getPosts:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    } else {
+      console.error("Unknown error in getPosts:", error);
+    }
+    
+    // Return empty array instead of throwing to prevent page crashes
+    return [];
+  } finally {
+    // Always disconnect after operation
+    await prisma.$disconnect();
   }
 }
 
