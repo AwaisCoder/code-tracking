@@ -1,0 +1,54 @@
+1) same groups are families/friends, meaning if any of the group memb got transported, so did other members
+
+2) home planet: if someone from mars got transported, its likely that thier group members (regardless of thier home planet) got transported as well
+
+3) i see the percentage of people deported compared to the deck they were in, and then i can encode(rank) each deck (A,B,C,D,E,F,G), on thier dangerness
+
+4) drop destination, vip
+
+5) RoomService, FoodCourt, ShoppingMall, Spa, VRDeck:
+Importance: High. Spending patterns may be indicative of CryoSleep state or other behaviors tied to transport likelihood.
+Action: Handle missing values (e.g., fill with 0 for CryoSleep passengers); consider aggregating into a total spending feature.
+
+
+# Split the data into features (X) and target (y)
+X = train_data_cleaned.drop(columns=['Transported','GroupID'])  # Drop target
+y = train_data_cleaned['Transported']
+
+# Split into train and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Train XGBoost model
+model = xgb.XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+model.fit(X_train, y_train)
+
+# Predictions
+y_pred = model.predict(X_test)
+y_prob = model.predict_proba(X_test)[:, 1]  # Probability for ROC-AUC
+
+# Evaluate model
+accuracy = accuracy_score(y_test, y_pred)
+roc_auc = roc_auc_score(y_test, y_prob)
+class_report = classification_report(y_test, y_pred)
+
+# Feature importance
+feature_importances = model.feature_importances_
+
+# Output the results
+print(f"Accuracy: {accuracy}")
+print(f"AUC-ROC: {roc_auc}")
+print("Classification Report:")
+print(class_report)
+
+
+feat_importance_df = pd.DataFrame({
+    'Feature': X.columns,
+    'Importance': feature_importances
+}).sort_values(by='Importance', ascending=False)
+
+# Plotting Feature Importance
+plt.figure(figsize=(10, 6))
+plt.barh(feat_importance_df['Feature'], feat_importance_df['Importance'])
+plt.xlabel('Feature Importance')
+plt.title('XGBoost Feature Importance')
+plt.show()
